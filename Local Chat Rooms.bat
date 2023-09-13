@@ -29,6 +29,7 @@ set _a=set&set "_b= "&set _c==
 %_%%_b%^|---------------------------------------------
 
 set "_errorCode=0"
+set "_localMode=true"
 
 Setlocal DisableDelayedExpansion
 
@@ -64,6 +65,11 @@ Setlocal DisableDelayedExpansion
 title Local Chat Rooms - Client
 
 set "_collab=P:\Composite\All Students\"
+
+if "%_localMode%" == "true" (
+    set "_collab=All Students"
+)
+
 set "_localData_=%_collab%\__LOCAL_CHAT_ROOM_DATA"
 
 set "_errorCode=103"
@@ -99,13 +105,17 @@ if exist "%_collab%" (
 )
 ping localhost -n 2 > nul
 if not exist "%_localData_%" (
-	cd /d %_localData_%
-	mkdir _LOCAL_CHAT_ROOM_DATA
+	mkdir "%_localData_%"
+	mkdir "%_localData_%\__users__"
+)
+if not exist "%_localData_%\__users__" (
+    mkdir "%_localData_%\__users__"
 )
 %ERASE%{         }
 %PRINT%{255;255;255}█████ 100%%\n
-%%
-pause > nul
+ping localhost -n 2 > nul
+%PRINT%{255;255;255}   Loading complete...
+ping localhost -n 2 > nul
 goto _startMenu
 goto _crash_
 
@@ -210,14 +220,10 @@ echo User: %_consoleUser%
 pause > nul
 goto _crash_
 
-:_lcr_REGISTER
-cls
-echo This is the register screen
-pause > nul
-
 :_lcr_LOGIN
 set "login_userInput="
 set "login_passInput="
+set "pass_contents="
 cls
 %say%╔═════════════════════════════════════════════╗
 %say%║            Local Chat Rooms 1.0             ║
@@ -231,7 +237,70 @@ cls
 %say%╚═════════════════════════════════════════════╝
 echo.
 set /p "login_userInput=Username: "
+set "psCommand=powershell -Command "$pword = read-host 'Password' -AsSecureString ; ^
+ $BSTR=[System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($pword); ^
+          [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)""
+for /f "usebackq delims=" %%p in (`%psCommand%`) do set "login_passInput=%%p"
+ping localhost -n 2 > nul
+echo.
+if not exist "%_localData_%\__users__\!login_userInput!" (
+    echo Incorrect username or password^^!
+    echo [ Press Any Key ]
+    pause > nul
+    goto _lcr_LOGIN
+)
+if not exist "%_localData_%\__users__\!login_userInput!\u_sec.dll"  (
+        echo Error: Data for user: !login_userInput! cannot be retrieved. Please report this error.
+        echo [ Press Any Key ]
+        pause > nul
+        goto _lcr_LOGIN
+)
+set /p pass_contents=<"%_localData_%\__users__\!login_userInput!\u_sec.dll"
+if "!login_passInput!" == "!pass_contents!" (
+    echo Logging in...
+) else (
+    echo Incorrect username or password^^!
+    echo [ Press Any Key ]
+    pause > nul
+    goto _lcr_LOGIN
+)
+ping localhost -n 2 > nul
+goto _lcr_main_menu_
+goto _crash_
+
+:_lcr_REGISTER
+set "REG_newUser="
+set "REG_newPass="
+set "REG_confirm="
+cls
+%say%╔═════════════════════════════════════════════╗
+%say%║            Local Chat Rooms 1.0             ║
+%say%╠═════════════════════════════════════════════╣
+%say%║ ░██████╗██╗░██████╗░███╗░░██╗  ░░░░░░       ║
+%say%║ ██╔════╝██║██╔════╝░████╗░██║  ░░░░░░       ║
+%say%║ ╚█████╗░██║██║░░██╗░██╔██╗██║  █████╗       ║
+%say%║ ░╚═══██╗██║██║░░╚██╗██║╚████║  ╚════╝       ║
+%say%║ ██████╔╝██║╚██████╔╝██║░╚███║  ░░░░░░       ║
+%say%║ ╚═════╝░╚═╝░╚═════╝░╚═╝░░╚══╝  ░░░░░░       ║
+%say%║ ██╗░░░██╗██████╗░                           ║
+%say%║ ██║░░░██║██╔══██╗                           ║
+%say%║ ██║░░░██║██████╔╝                           ║
+%say%║ ██║░░░██║██╔═══╝░                           ║
+%say%║ ╚██████╔╝██║░░░░░                           ║
+%say%║ ░╚═════╝░╚═╝░░░░░                           ║
+%say%╚═════════════════════════════════════════════╝
+echo.
+set /p "REG_newUser=Create a Username: "
+if exist "%_localData_%\__users__\!REG_newUser!" (
+    echo.
+    echo This username is taken^^!
+    echo [ Press Any Key ]
+    pause > nul
+    goto _lcr_REGISTER
+)
+echo success!
 pause > nul
+goto _lcr_REGISTER
 
 :writeTitle
 %say%╔═════════════════════════════════════════════╗
@@ -259,8 +328,8 @@ pause > nul
 %say%╠═════════════════════════════════════════════╣
 %say%║ Type the number you wish to use             ║
 %say%╠═════════════════════════════════════════════╣
-%say%║ 1: Login                                    ║
-%say%║ 2: Register                                 ║
+%say%║ 1: Login                3: Report           ║
+%say%║ 2: Sign Up              or $redirect        ║
 %say%╚═════════════════════════════════════════════╝
 exit /b 0
 
