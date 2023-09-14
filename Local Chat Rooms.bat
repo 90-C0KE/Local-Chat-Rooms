@@ -94,7 +94,7 @@ echo.
 ping localhost -n 2 > nul
 if exist "%_collab%" (
 	%ERASE%{              }
-	%PRINT%{255;2552;255} █████      50%%
+	%PRINT%{255;255;255} █████      50%%
 ) else (
 	%PRINT%{255;255;255}\n
 	%PRINT%{255;255;255}   Error: Cannot find Collaboration Folder^^!\n
@@ -291,16 +291,71 @@ cls
 %say%╚═════════════════════════════════════════════╝
 echo.
 set /p "REG_newUser=Create a Username: "
+if "!REG_newUser!" == "" (
+	echo.
+	echo Username cannot be empty.
+	echo [ Press Any Key ]
+	pause > nul
+	goto _lcr_REGISTER
+)
+if "!REG_newUser!" == "/" (
+	echo.
+	echo Invalid characters in username.
+	echo [ Press Any Key ]
+	pause > nul
+	goto _lcr_REGISTER
+)
+echo:!REG_newUser!|findstr /i "^[0-9A-Z.-_]*$" >Nul 2>&1 ||(
+    echo.
+	echo Invalid characters in username.
+	echo [ Press Any Key ]
+	pause > nul
+	goto _lcr_REGISTER
+)
 if exist "%_localData_%\__users__\!REG_newUser!" (
     echo.
     echo This username is taken^^!
+	echo "!REG_newUser!"
     echo [ Press Any Key ]
     pause > nul
     goto _lcr_REGISTER
 )
-echo success!
+set "psCommand=powershell -Command "$pword = read-host 'Create a password' -AsSecureString ; ^
+ $BSTR=[System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($pword); ^
+          [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)""
+for /f "usebackq delims=" %%p in (`%psCommand%`) do set "REG_newPass=%%p"
+if "!REG_newPass!" == "" (
+	echo.
+	echo Password cannot be empty.
+	echo [ Press Any Key ]
+	pause > nul
+	goto _lcr_REGISTER
+)
+set "psCommand=powershell -Command "$pword = read-host 'Confirm  password' -AsSecureString ; ^
+ $BSTR=[System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($pword); ^
+          [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)""
+for /f "usebackq delims=" %%p in (`%psCommand%`) do set "REG_confirm=%%p"
+if "!REG_newPass!" neq "!REG_confirm!" (
+	echo.
+	echo Passwords don't match.
+	echo [ Press Any Key ]
+	pause > nul
+	goto _lcr_REGISTER
+)
+echo.
+echo Creating your account...
+ping localhost -n 2 > nul
+mkdir "%_localData_%\__users__\!REG_newUser!"
+::encrypt password so it cant be viewed by dedicated people
+echo !REG_newPass!>"%_localData_%\__users__\!REG_newUser!\u_sec.dll"
+::_0x375858_ is the code for a members, each rank has different ranks
+echo _0x375856_>"%_localData_%\__users__\!REG_newUser!\u_role.dll"
+echo Successfully created your account^^!
+echo.
+echo [ Press Any Key ]
 pause > nul
-goto _lcr_REGISTER
+goto _startMenu
+goto _crash_
 
 :writeTitle
 %say%╔═════════════════════════════════════════════╗
