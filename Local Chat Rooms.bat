@@ -1,4 +1,41 @@
 
+::oemcp=$(reg.exe query "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Nls\\CodePage" /v OEMCP 2>&1 | sed -n 3p | sed -e 's|\r||g' | grep -o '[[:digit:]]*')
+::chcp.com $oemcp
+::powershell.exe ...
+::chcp.com 65001
+
+:: string encryption link: https://stackoverflow.com/questions/31444555/how-to-encrypt-a-string-and-save-it-in-a-file-and-read-the-decrypted-string-from
+
+:: To ensure the 'Raster Fonts' issue doesn't occur, use command 'chcp 65001 > nul' before echoing ascii
+:: and use command 'chcp 850 > nul' after echoing commands
+
+:: Shortcuts to the 'chcp commands':
+set "chcp_on=chcp 65001 > nul"
+set "chcp_off=chcp 850 > nul"
+::::::::::::::::::::::::::::::::::::
+
+set "charSet=abcdefghijklmnopqrstuvwxyz1234567890@#$*(.,- \/"
+set i=0
+for %%a in (
+    UDFM45 H21DGF FDH56D FGS546 JUK4JH
+    ERG54S T5H4FD RG641G RG4F4D RT56F6
+    VCBC3B F8G9GF FD4CJS G423FG F45GC2
+    TH5DF5 CV4F6R XF64TS X78DGT TH74SJ
+    BCX6DF FG65SD 4KL45D GFH3F2 GH56GF
+    45T1FG D4G23D GB56FG SF45GF P4FF12
+    F6DFG1 56FG4G USGFDG FKHFDG IFGJH6
+    87H8G7 G25GHF 45FGFH 75FG45 54GDH5
+    45F465 HG56FG DF56H4 F5JHFH SGF4HF
+    45GH45 56H45G ) do (
+   for %%i in (!i!) do for /F "delims=" %%c in ("!charSet:~%%i,1!") do (
+      set "ENC[%%c]=%%a"
+      set "DEC[%%a]=%%c"
+   )
+   set /A i+=1
+)
+
+MODE con:cols=80 lines=30
+
 set _a=set&set "_b= "&set _c==
 %_a%%_b%_%_c%r^e^m
 
@@ -29,7 +66,7 @@ set _a=set&set "_b= "&set _c==
 %_%%_b%^|---------------------------------------------
 
 set "_errorCode=0"
-set "_localMode=true"
+set "_localMode=false"
 
 Setlocal DisableDelayedExpansion
 
@@ -81,11 +118,14 @@ goto load_app
 goto _crash_
 
 :load_app
-chcp 65001
+%chcp_on%
 cls
 echo.
 echo    ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
 echo    ░░:  Loading: Local Chat Rooms   :░░
+if "%_localMode%" == "true" (
+	echo    ░░:  ^( Running in Local Mode ^)   :░░
+)
 echo    ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
 ping localhost -n 2 > nul
 echo.
@@ -221,6 +261,7 @@ pause > nul
 goto _crash_
 
 :_lcr_LOGIN
+%chcp_on%
 set "login_userInput="
 set "login_passInput="
 set "pass_contents="
@@ -236,6 +277,7 @@ cls
 %say%║    ╚══════╝░╚════╝░░╚═════╝░╚═╝╚═╝░░╚══╝    ║
 %say%╚═════════════════════════════════════════════╝
 echo.
+%chcp_off%
 set /p "login_userInput=Username: "
 set "psCommand=powershell -Command "$pword = read-host 'Password' -AsSecureString ; ^
  $BSTR=[System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($pword); ^
@@ -269,6 +311,7 @@ goto _lcr_main_menu_
 goto _crash_
 
 :_lcr_REGISTER
+%chcp_on%
 set "REG_newUser="
 set "REG_newPass="
 set "REG_confirm="
@@ -290,6 +333,7 @@ cls
 %say%║ ░╚═════╝░╚═╝░░░░░                           ║
 %say%╚═════════════════════════════════════════════╝
 echo.
+%chcp_off%
 set /p "REG_newUser=Create a Username: "
 if "!REG_newUser!" == "" (
 	echo.
@@ -346,6 +390,19 @@ echo.
 echo Creating your account...
 ping localhost -n 2 > nul
 mkdir "%_localData_%\__users__\!REG_newUser!"
+:: ENCRYPTING PASSWORD INPUT TO SAVE IN FILE -- _NOT FUNCTIONAL YET_
+
+set Encrypt2=%REG_newPass%
+set "EncryptOut="
+:encrypt2
+   set "EncryptOut=%EncryptOut%!ENC[%Encrypt2:~0,1%]!"
+   set "Encrypt2=%Encrypt2:~1%"
+if defined Encrypt2 goto encrypt2
+
+echo %EncryptOut%> "%~dp0encrypted.txt"
+pause > nul
+exit
+
 ::encrypt password so it cant be viewed by dedicated people
 echo !REG_newPass!>"%_localData_%\__users__\!REG_newUser!\u_sec.dll"
 ::_0x375858_ is the code for a members, each rank has different ranks
@@ -358,6 +415,7 @@ goto _startMenu
 goto _crash_
 
 :writeTitle
+%chcp_on%
 %say%╔═════════════════════════════════════════════╗
 %say%║            Local Chat Rooms 1.0             ║
 %say%╠═════════════════════════════════════════════╣
@@ -386,6 +444,7 @@ goto _crash_
 %say%║ 1: Login                3: Report           ║
 %say%║ 2: Sign Up              or $redirect        ║
 %say%╚═════════════════════════════════════════════╝
+%chcp_off%
 exit /b 0
 
 :_crash_
