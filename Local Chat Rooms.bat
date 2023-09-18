@@ -13,7 +13,7 @@
 set "chcp_on=chcp 65001 > nul"
 set "chcp_off=chcp 850 > nul"
 ::::::::::::::::::::::::::::::::::::
-
+setlocal EnableDelayedExpansion
 set "charSet=abcdefghijklmnopqrstuvwxyz1234567890@#$*(.,- \/"
 set i=0
 for %%a in (
@@ -33,6 +33,8 @@ for %%a in (
    )
    set /A i+=1
 )
+
+setlocal DisableDelayedExpansion
 
 MODE con:cols=80 lines=30
 
@@ -375,6 +377,13 @@ if "!REG_newPass!" == "" (
 	pause > nul
 	goto _lcr_REGISTER
 )
+echo:!REG_newPass!|findstr /i "^[0-9A-Z.-_]*$" >Nul 2>&1 ||(
+    echo.
+	echo Invalid characters in password.
+	echo [ Press Any Key ]
+	pause > nul
+	goto _lcr_REGISTER
+)
 set "psCommand=powershell -Command "$pword = read-host 'Confirm  password' -AsSecureString ; ^
  $BSTR=[System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($pword); ^
           [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)""
@@ -390,21 +399,16 @@ echo.
 echo Creating your account...
 ping localhost -n 2 > nul
 mkdir "%_localData_%\__users__\!REG_newUser!"
-:: ENCRYPTING PASSWORD INPUT TO SAVE IN FILE -- _NOT FUNCTIONAL YET_
-
+::::::::::::::::::::::::::::::::::::::::: ENCRYPTING PASSWORD INPUT TO SAVE IN FILE -- _FUNCTIONAL_
 set Encrypt2=%REG_newPass%
 set "EncryptOut="
 :encrypt2
    set "EncryptOut=%EncryptOut%!ENC[%Encrypt2:~0,1%]!"
    set "Encrypt2=%Encrypt2:~1%"
 if defined Encrypt2 goto encrypt2
-
-echo %EncryptOut%> "%~dp0encrypted.txt"
-pause > nul
-exit
-
+::::::::::::::::::::::::::::::::::::::::: END OF SECTION
 ::encrypt password so it cant be viewed by dedicated people
-echo !REG_newPass!>"%_localData_%\__users__\!REG_newUser!\u_sec.dll"
+echo !EncryptOut!>"%_localData_%\__users__\!REG_newUser!\u_sec.dll"
 ::_0x375858_ is the code for a members, each rank has different ranks
 echo _0x375856_>"%_localData_%\__users__\!REG_newUser!\u_role.dll"
 echo Successfully created your account^^!
