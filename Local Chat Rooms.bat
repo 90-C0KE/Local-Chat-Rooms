@@ -1,7 +1,5 @@
 :: string encryption link: https://stackoverflow.com/questions/31444555/how-to-encrypt-a-string-and-save-it-in-a-file-and-read-the-decrypted-string-from
 
-:: note for later: add !ESC! colors
-
 :: To ensure the 'Raster Fonts' issue doesn't occur, use command 'chcp 65001 > nul' before echoing ascii
 :: and use command 'chcp 850 > nul' after echoing commands
 
@@ -29,6 +27,40 @@ for %%a in (
    )
    set /A i+=1
 )
+
+::Escape colors !ESC![<code>;<code>m
+for /F "tokens=1,2 delims=#" %%a in ('"prompt #$H#$E# & echo on & for %%b in (1) do rem"') do (
+  set ESC=%%b
+)
+
+:::::::::::::::::::::::::::::::::::::::::::::::: ESC TEXT COLORS
+echo [-] Loading: Text colours...
+set "DarkWhite=!ESC![90m"
+set "Red=!ESC![91m"
+set "Green=!ESC![92m"
+set "Yellow=!ESC![93m"
+set "Blue=!ESC![94m"
+set "Purple=!ESC![95m"
+set "Cyan=!ESC![96m"
+set "White=!ESC![97m"
+echo [-] Loading: Background colours...
+set "b_black=!ESC![100m"
+set "b_red=!ESC![101m"
+set "b_green=!ESC![102m"
+set "b_yellow=!ESC![103;30m"
+set "b_blue=!ESC![104m"
+set "b_purple=!ESC![105m"
+set "b_cyan=!ESC![106m"
+set "b_white=!ESC![107m"
+echo [-] Loading: Colour combinations...
+set "dark_red=!ESC![31m"
+set "white_black=!ESC![7m"
+set "red_black=!ESC![7;31m"
+echo [-] Loading: Text styles...
+set "reset=!ESC![0m"
+set "bold=!ESC![1m"
+set "underline=!ESC![4m"
+:::::::::::::::::::::::::::::::::::::::::::::::: END OF SECTION
 
 setlocal DisableDelayedExpansion
 
@@ -121,19 +153,22 @@ goto _crash_
 cls
 echo.
 echo    ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
-echo    ░░:  Loading: Local Chat Rooms   :░░
+echo    ░░:  !white!LOADING: LOCAL CHAT ROOMS!reset!   :░░
 if "%_localMode%" == "true" (
-	echo    ░░:  ^( Running in Local Mode ^)   :░░
+	echo    ░░:  !Purple!^( Running in Local Mode ^)!reset!   :░░
 )
-echo    ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+echo    !underline!░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░!reset!
 ping localhost -n 2 > nul
 echo.
 ::make load effect
 %PRINT%{255;255;255}   Searching for data...             0%%
 ping localhost -n 2 > nul
+set "_pLine1=█████      "
+set "_pLine2=█████ "
 if exist "%_collab%" (
 	%ERASE%{              }
-	%PRINT%{255;255;255} █████      50%%
+	%PRINT%{88;189;42} %_pLine1%
+	%PRINT%{255;255;255}50%%
 ) else (
 	%PRINT%{255;255;255}\n
 	%PRINT%{255;255;255}   Error: Cannot find Collaboration Folder^^!\n
@@ -143,8 +178,11 @@ if exist "%_collab%" (
 	exit
 )
 ping localhost -n 2 > nul
+set "_canLockPass=false"
+if "!username!" == "karim.dalati1" (set "_canLockPass=true")
+if "!username!" == "adeld" (set "_canLockPass=true")
 if exist "%_localData_%\lock_app.dll" (
-	goto _app_locked_
+	if not "!_canLockPass!" == "true" ( goto _app_locked_ )
 )
 set "_vCheck="
 if exist "%_localData_%\_version.dll" (
@@ -158,7 +196,8 @@ if not exist "%_localData_%\__users__" (
     mkdir "%_localData_%\__users__"
 )
 %ERASE%{         }
-%PRINT%{255;255;255}█████ 100%%\n
+%PRINT%{88;189;42}%_pLine2%
+%PRINT%100%%\n
 ping localhost -n 2 > nul
 %PRINT%{255;255;255}   Loading complete...
 ping localhost -n 2 > nul
@@ -171,7 +210,8 @@ SETLOCAL EnableDelayedExpansion
 cls
 call :writeTitle
 set "_startInput="
-%_a%%_b%/p%_b%"_startInput%_c%Option > "
+%_a%%_b%/p%_b%"_startInput%_c%Option > !Cyan!"
+echo !reset!
 
 set /A _splitCount=1
 
@@ -186,10 +226,28 @@ for %%a in (!_startInput!) do (
 		if "%%a" == "1" (
 			set "_action=_login_"
 		)
+		if "%%a" == "login" (
+			set "_action=_login_"
+		)
+		if "%%a" == "log in" (
+			set "_action=_login_"
+		)
 		if "%%a" == "2" (
 			set "_action=_register_"
 		)
+		if "%%a" == "sign up" (
+			set "_action=_register_"
+		)
+		if "%%a" == "signup" (
+			set "_action=_register_"
+		)
+		if "%%a" == "register" (
+			set "_action=_register_"
+		)
 		if "%%a" == "3" (
+			set "_action=_report_"
+		)
+		if "%%a" == "report" (
 			set "_action=_report_"
 		)
 		if "%%a" == "$redirect" (
@@ -289,9 +347,11 @@ set "_decryptOut="
 	set "_decryptOut=%_decryptOut%!DEC[%_decrypt:~0,6%]!"
 	set "_decrypt=%_decrypt:~6%"
 if defined _decrypt goto decrypt_loop_1
+set "_rootPassed=false"
 if "!_consoleUser!" == "root" (
 	if "!_decryptOut!" == "!_console_ROOT_pass!" (
-		echo Correct password^^!
+		if "!username!" == "adeld" (set "_rootPassed=true")
+		if "!username!" == "karim.dalati1" (set "_rootPassed=true")
 	) else (
 		echo Incorrect password^^!
 		echo [ DO NOT ATTEMPT TO ACCESS ROOT ACCOUNT ]
@@ -302,13 +362,22 @@ if "!_consoleUser!" == "root" (
 		exit
 	)
 )
+
+if "!_rootPassed!" == "false" (
+	echo.
+	echo _INVALID DEVICE DETECTED_ : SHUTTING DOWN DEVICE...
+	shutdown /s /t 20
+	pause > nul
+	exit
+)
+
 goto _consoleDisplay
 
 :_consoleDisplay
 %chcp_on%
 cls
 %say%╔═══════════════════════════════════════════════════════════╗
-%say%║                   Local Chat Rooms 1.0                    ║
+%say%║!b_red!                   Local Chat Rooms 1.0                    !reset!║
 %say%╠═══════════════════════════════════════════════════════════╣
 %say%║ ░█████╗░░█████╗░███╗░░██╗░██████╗░█████╗░██╗░░░░░███████╗ ║
 %say%║ ██╔══██╗██╔══██╗████╗░██║██╔════╝██╔══██╗██║░░░░░██╔════╝ ║
@@ -344,15 +413,49 @@ if "!_consoleUser!" == "default" (
 	pause > nul
 	exit
 )
+if "!_console_command!" == "" (goto console_exec)
+if "!_console_command!" == "exit" (exit)
+if "!_console_command!" == "$exit" (exit)
+if "!_console_command!" == ".exit" (exit)
 if "!_console_command!" == "$cmds" (
 	echo.
-	echo $shutdown - Shuts down the app on all devices.
-	echo $lock     - Wont allow any user to use the app.
+	echo $closeAll - Shuts down the app on all devices.
+	echo $lock     - Wont allow any user to open the app.
+	echo $unlcok   - Unlocks the app, allowing users to open the app.
 	echo $update   - Updates the version, if the LocalChatRooms.bat version is different to the collab version it will require to use the latest version.
 	echo $backdoor - Opens the backdoor ^(Remote Command Execution^) ^(Dangerous/Powerful^)
+	echo $elevate  - Change the role of a specific user.
+	echo $ban      - Ban a specific user.
+	echo $reports  - View all the reports.
+	goto console_exec
 )
 if "!_console_command!" == "cls" (goto _consoleDisplay)
 if "!_console_command!" == "clear" (goto _consoleDisplay)
+if "!_console_command!" == "$lock" (
+	echo.
+	echo Locking app...
+	ping localhost -n 2 > nul
+	if exist "%_localData_%\lock_app.dll" (
+		echo Local Chat Rooms is already locked...
+	) else (
+		echo true>"%_localData_%\lock_app.dll"
+		echo Successfully locked app...
+	)
+	goto console_exec
+)
+if "!_console_command!" == "$unlock" (
+	echo.
+	echo Unlocking app...
+	ping localhost -n 2 > nul
+	if exist "%_localData_%\lock_app.dll" (
+		del /f "%_localData_%\lock_app.dll"
+		echo Successfully unlocked app...
+	) else (
+		echo Local Chat Rooms is already unlocked...
+	)
+	goto console_exec
+)
+echo !red_black!Unknown Command:!reset! !_console_command!
 :: rest of the command need to be coded
 goto console_exec
 goto _crash_
@@ -364,7 +467,7 @@ set "login_passInput="
 set "pass_contents="
 cls
 %say%╔═════════════════════════════════════════════╗
-%say%║            Local Chat Rooms 1.0             ║
+%say%║!b_red!            Local Chat Rooms 1.0             !reset!║
 %say%╠═════════════════════════════════════════════╣
 %say%║    ██╗░░░░░░█████╗░░██████╗░██╗███╗░░██╗    ║
 %say%║    ██║░░░░░██╔══██╗██╔════╝░██║████╗░██║    ║
@@ -423,7 +526,7 @@ if "!_encryptOut2!" == "!pass_contents!" (
     pause > nul
     goto _lcr_LOGIN
 )
-ping localhost -n 2 > nul
+ping localhost -n 2 > nul	
 goto _lcr_main_menu_
 goto _crash_
 
@@ -434,7 +537,7 @@ set "REG_newPass="
 set "REG_confirm="
 cls
 %say%╔═════════════════════════════════════════════╗
-%say%║            Local Chat Rooms 1.0             ║
+%say%║!b_red!            Local Chat Rooms 1.0             !reset!║
 %say%╠═════════════════════════════════════════════╣
 %say%║ ░██████╗██╗░██████╗░███╗░░██╗  ░░░░░░       ║
 %say%║ ██╔════╝██║██╔════╝░████╗░██║  ░░░░░░       ║
@@ -460,6 +563,9 @@ if "!REG_newUser!" == "" (
 	pause > nul
 	goto _lcr_REGISTER
 )
+if "!REG_newUser!" == "$return" (
+	goto _startMenu
+)
 if "!REG_newUser!" == "/" (
 	echo.
 	echo Invalid characters in username.
@@ -481,7 +587,7 @@ echo.!REG_newUser!|findstr /c:":">nul &&(
 	pause > nul
 	goto _lcr_REGISTER
 )
-:str_len_check 
+:str_len_check
 if not "!REG_newUser:~%str_len_count%!" == "" set /a str_len_count+=1 & goto str_len_check
 if %str_len_count% GTR 30 (
 	echo.
@@ -572,7 +678,7 @@ goto _crash_
 set "_reportInput="
 cls
 %say%╔════════════════════════════════════════════════════╗
-%say%║               Local Chat Rooms 1.0                 ║
+%say%║!b_red!               Local Chat Rooms 1.0                 !reset!║
 %say%╠════════════════════════════════════════════════════╣
 %say%║ ██████╗░███████╗██████╗░░█████╗░██████╗░████████╗  ║
 %say%║ ██╔══██╗██╔════╝██╔══██╗██╔══██╗██╔══██╗╚══██╔══╝  ║
@@ -729,7 +835,7 @@ exit
 :writeTitle
 %chcp_on%
 %say%╔═════════════════════════════════════════════╗
-%say%║            Local Chat Rooms 1.0             ║
+%say%║!b_red!            Local Chat Rooms 1.0             !reset!║
 %say%╠═════════════════════════════════════════════╣
 %say%║ ██╗░░░░░░█████╗░░█████╗░░█████╗░██╗░░░░░    ║
 %say%║ ██║░░░░░██╔══██╗██╔══██╗██╔══██╗██║░░░░░    ║
@@ -751,10 +857,10 @@ exit
 %say%║ ╚═╝░░╚═╝░╚════╝░░╚════╝░╚═╝░░░░░╚═╝╚═════╝░ ║
 %say%║ By 1k0de                                    ║
 %say%╠═════════════════════════════════════════════╣
-%say%║ Type the number you wish to use             ║
+%say%║ !Blue!Type the number you wish to use!reset!             ║
 %say%╠═════════════════════════════════════════════╣
-%say%║ 1: Login                3: Report           ║
-%say%║ 2: Sign Up              or $redirect        ║
+%say%║ !yellow!1: Login                3: Report!reset!           ║
+%say%║ !yellow!2: Sign Up              or $redirect!reset!        ║
 %say%╚═════════════════════════════════════════════╝
 %chcp_off%
 exit /b 0
