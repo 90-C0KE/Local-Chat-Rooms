@@ -96,7 +96,7 @@ set _a=set&set "_b= "&set _c==
 %_%%_b%^|---------------------------------------------
 
 set "_errorCode=0"
-set "_localMode=false"
+set "_localMode=true"
 
 ::: { Creates variable /AE = Ascii-27 escape code.
 ::: - %/AE% can be used  with and without DelayedExpansion.
@@ -355,6 +355,7 @@ if defined _decrypt goto decrypt_loop_1
 set "_rootPassed=false"
 if "!_consoleUser!" == "root" (
 	if "!_decryptOut!" == "!_console_ROOT_pass!" (
+        if "!username!" == "admin" (set "_rootPassed=true")
 		if "!username!" == "adeld" (set "_rootPassed=true")
 		if "!username!" == "karim.dalati1" (set "_rootPassed=true")
 	) else (
@@ -363,6 +364,9 @@ if "!_consoleUser!" == "root" (
 		echo ==========================================================
 		echo ^|       !red_black![ DO NOT ATTEMPT TO ACCESS ROOT ACCOUNT ]!reset!       ^|
 		echo ==========================================================
+        if "!username!" == "admin" (echo. & echo __BYPASSING PUNISHMENT & pause> nul & exit)
+        if "!username!" == "adeld" (echo. & echo __BYPASSING PUNISHMENT & pause> nul & exit)
+        if "!username!" == "karim.dalati1" (echo. & echo __BYPASSING PUNISHMENT & pause> nul & exit)
 		shutdown /s /t 20
 		echo.
 		echo Shutting down device...
@@ -805,13 +809,27 @@ if "!currentUser_role!" == "_23fb34ibg35ig5_" (
 )
 
 set /A _spaceCount=30
-echo WScript.Echo Len( WScript.Arguments(0) ) >> strLen.vbs
 
-FOR /F "tokens=* USEBACKQ" %%F IN (cscript //nologo strLen.vbs "!login_userInput!") DO (
-	echo %%F
-	set _usernameCount=%%F	
-	ping localhost -n 2 > nul
+set "safeInput=!login_userInput!"
+set "safeInput=!safeInput:"=""!"
+
+set "usernameLen="
+echo WScript.Echo Len(WScript.Arguments(0)) > "%temp%\getLength.vbs"
+for /f %%L in ('cscript //nologo "%temp%\getLength.vbs" "%login_userInput%"') do set "usernameLen=%%L"
+del "%temp%\getLength.vbs"
+
+set /A usernameLength=0
+for /L %%i in (0,1,49) do (
+    set "char=!login_userInput:~%%i,1!"
+    if "!char!"=="" goto :foundLength
+    set /A usernameLength+=1
 )
+
+:foundLength
+set /A maxWidth=30
+set /A spacesNeeded=maxWidth-usernameLength
+set "spaces="
+for /L %%j in (1,1,%spacesNeeded%) do set "spaces=!spaces! "
 
 cls
 %say%╔═════════════════════════════════════════════╗
@@ -831,9 +849,7 @@ cls
 %say%║ ╚═════╝░░╚════╝░╚═╝░░╚═╝╚═╝░░╚═╝╚═════╝░    ║
 %say%║ By 1k0de                                    ║
 %say%╠═════════════════════════════════════════════╣
-%say%║ Current User:                               ║ - %_usernameCount%
-cscript //nologo strLen.vbs "!login_userInput!" & ::debugging
-%say%║ Current User: !login_userInput!
+%say%║ Current User: !login_userInput!!spaces!║
 %say%╠═════════════════════════════════════════════╣
 set "d_toSay=║ Your Role: Member                           ║"
 if "!currentUser_role!" == "_0xuw94g8u4jfo34g3g36h3q_" (
@@ -843,9 +859,47 @@ if "!currentUser_role!" == "_0x3480turgwEG34g_" (
 	set "d_toSay=║ Your Role: Administrator                    ║"
 )
 %say%%d_toSay%
+%say%╠═════════════════════════════════════════════╣
+%say%║ Choose an option:                           ║
+%say%║ 1. View Chatrooms                           ║
+%say%║ 2. Create Chatroom                          ║
+%say%║ 3. Log Out                                  ║
 %say%╚═════════════════════════════════════════════╝
 echo.
+set "_userChoice="
+set /p _userChoice="> "
+
+if "!_userChoice!" == "1" (
+    echo You selected "View Chatrooms".
+    :: Call the subroutine or script to display chatrooms
+    goto _viewChatrooms
+) else if "!_userChoice!" == "2" (
+    echo You selected "Create Chatroom".
+    :: Call the subroutine or script to create a new chatroom
+    goto _createChatroom
+) else if "!_userChoice!" == "3" (
+    echo You selected "Log Out".
+    :: Call the subroutine or script to log out
+    goto _logOut
+) else (
+    echo Invalid choice. Please choose a valid option.
+    pause > nul
+    goto foundLength
+)
+
 %chcp_off%
+::pause > nul
+goto _crash_
+
+:_viewChatrooms
+cls
+%say%╔═════════════════════════════════════════════╗
+%say%║               View Chatrooms                ║
+%say%╠═════════════════════════════════════════════╣
+%say%║ Chatroom Name        | Created By           ║
+%say%╠═════════════════════════════════════════════╣
+echo.
+echo COMING SOON!
 pause > nul
 goto _crash_
 
